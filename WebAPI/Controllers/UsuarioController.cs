@@ -1,4 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using Microsoft.IdentityModel.Tokens;
+using System;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 using System.Web.Http;
 using System.Web.Http.Cors;
 using WebAPI.Data;
@@ -10,34 +14,61 @@ namespace WebAPI.Controllers
     [EnableCors(origins: "http://localhost:4200", headers: "*", methods: "*")]
     public class UsuarioController : ApiController
     {
-        // GET api/<controller>
-        public List<Usuario> Get()
+        [HttpPost]
+        [Route("api/usuario/login")]
+        public IHttpActionResult Login([FromBody] Usuario usuario)
         {
-            return UsuarioData.Listar();
+            var user = UsuarioData.LoginUsuario(usuario.Email, usuario.Password);
+            if (user == null)
+                return BadRequest("Correo o contraseña incorrectos");
+
+            return Ok(user);
         }
 
-        // GET api/<controller>/5
-        public Usuario Get(int id)
+        //Metodo para generar token
+        private string GenerarToken(Usuario usuario)
         {
-            return UsuarioData.Obtener(id);
+            var key = Encoding.UTF8.GetBytes(WebApiConfig.JwtSecretKey);
+            var claims = new[]
+            {
+        new Claim(ClaimTypes.NameIdentifier, usuario.IdUsuario.ToString()),
+        new Claim(ClaimTypes.Email, usuario.Email),
+        new Claim(ClaimTypes.Name, usuario.Name)
+    };
+
+            var credenciales = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256);
+            var token = new JwtSecurityToken(
+                issuer: "tu_api",
+                audience: "tu_api",
+                claims: claims,
+                expires: DateTime.UtcNow.AddHours(1),
+                signingCredentials: credenciales
+            );
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
-        // POST api/<controller>
-        public bool Post([FromBody] Usuario oUsuario)
+
+        [HttpPost]
+        [Route("api/usuario/loginJWT")]
+        public IHttpActionResult LoginJWT([FromBody] Usuario usuario)
         {
-            return UsuarioData.Registrar(oUsuario);
+            var user = UsuarioData.LoginUsuarioJWT(usuario.Email, usuario.Password);
+            if (user == null)
+                return BadRequest("Correo o contraseña incorrectos");
+
+            var token = GenerarToken(user);
+            return Ok(new { token, user });
         }
 
-        //// PUT api/<controller>/5
-        public bool Put([FromBody] Usuario oUsuario)
+        [Authorize]
+        [HttpPost]
+        public IHttpActionResult RefreshToken()
         {
-            return UsuarioData.Modificar(oUsuario);
+            var userId = User.Identity.Name;
+            var newToken = GenerarToken(new Usuario { IdUsuario = int.Parse(userId) });
+            return Ok(new { token = newToken });
         }
 
-        //// DELETE api/<controller>/5
-        public bool Delete(int id)
-        {
-            return UsuarioData.Eliminar(id);
-        }
     }
 }

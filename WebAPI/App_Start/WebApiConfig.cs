@@ -8,6 +8,7 @@ namespace WebAPI
 {
     public static class WebApiConfig
     {
+        public static readonly string JwtSecretKey = "EstaEsUnaClaveSeguraDeMasDe32Caracteres!";
         public static void Register(HttpConfiguration config)
         {
             // Habilitar CORS para el frontend Angular

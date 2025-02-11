@@ -10,7 +10,8 @@ namespace WebAPI.Controllers
     [EnableCors(origins: "http://localhost:4200", headers: "*", methods: "*")]
     public class RegionController : ApiController
     {
-        // GET api/<controller>
+        [HttpGet]
+        [Route("api/region/")]
         public List<Region> Get()
         {
             return RegionData.ListarRegion();

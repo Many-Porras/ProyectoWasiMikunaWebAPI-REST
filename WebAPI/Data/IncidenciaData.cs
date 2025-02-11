@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data.SqlClient;
 using System.Data;
-using System.Linq;
-using System.Web;
+using System.Data.SqlClient;
 using WebAPI.Models;
 
 namespace WebAPI.Data
@@ -41,22 +39,23 @@ namespace WebAPI.Data
                 {
                     throw new Exception("Error al incertar la incidencia: " + ex.Message);
                     // Manejar el error según las necesidades del proyecto
-                    idGenerado = 0;
+                    //idGenerado = 0;
                 }
             }
 
             return idGenerado;
         }
 
-
-        public static Incidencia Obtener(int id_incidencia)
+        public static List<Incidencia> BuscarPorTipoYNumero(string tipoDoc, string nroDoc)
         {
-            Incidencia oIncidencia = new Incidencia();
+            List<Incidencia> lista = new List<Incidencia>();
+
             using (SqlConnection oConexion = new SqlConnection(Conexion.rutaConexion))
             {
-                SqlCommand cmd = new SqlCommand("sp_get_t_incidencia_by_id", oConexion);
+                SqlCommand cmd = new SqlCommand("sp_BuscarIncidenciasPorTipoNumero", oConexion);
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("@id_incidencia", id_incidencia);
+                cmd.Parameters.AddWithValue("@TipoDoc", tipoDoc);
+                cmd.Parameters.AddWithValue("@NroDoc", nroDoc);
 
                 try
                 {
@@ -65,33 +64,72 @@ namespace WebAPI.Data
                     {
                         while (dr.Read())
                         {
-                            oIncidencia = new Incidencia()
-                            {
-                                IdIncidencia = Convert.ToInt32(dr["id_incidencia"]),
-                                IdColegio = Convert.ToInt32(dr["id_colegio"]),
-                                TipoIncidencia = dr["tipo_incidencia"].ToString(),
-                                Tipologia = dr["tipologia"].ToString(),
-                                TipoDocumentoTutor = dr["tipo_documento_tutor"].ToString(),
-                                NumeroDocumentoTutor = dr["numero_documento_tutor"].ToString(),
-                                NombreTutor = dr["nombre_tutor"].ToString(),
-                                CelularTutor = dr["celular_tutor"].ToString(),
-                                Archivos = dr.IsDBNull(dr.GetOrdinal("archivos")) ? null : (byte[])dr["archivos"],
-                                Estado = dr["estado"].ToString(),
-                                FechaReagendado = dr.IsDBNull(dr.GetOrdinal("fecha_reagendado")) ? (DateTime?)null : Convert.ToDateTime(dr["fecha_reagendado"]),
-                                FechaRegistro = dr.IsDBNull(dr.GetOrdinal("fecha_registro")) ? (DateTime?)null : Convert.ToDateTime(dr["fecha_registro"]),
-                                FechaUpdate = dr.IsDBNull(dr.GetOrdinal("fecha_update")) ? (DateTime?)null : Convert.ToDateTime(dr["fecha_update"])
-                            };
+                            lista.Add(MapearIncidencia(dr));
                         }
                     }
-                    return oIncidencia;
                 }
                 catch (Exception ex)
                 {
-                    return oIncidencia;
+                    throw new Exception("Error al buscar incidencias: " + ex.Message);
                 }
             }
+
+            return lista;
         }
 
-        
+        public static List<Incidencia> BuscarPorNumero(string nroDoc)
+        {
+            List<Incidencia> lista = new List<Incidencia>();
+
+            using (SqlConnection oConexion = new SqlConnection(Conexion.rutaConexion))
+            {
+                SqlCommand cmd = new SqlCommand("sp_BuscarIncidenciasPorNroDocumento", oConexion);
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@NroDoc", nroDoc);
+
+                try
+                {
+                    oConexion.Open();
+                    using (SqlDataReader dr = cmd.ExecuteReader())
+                    {
+                        while (dr.Read())
+                        {
+                            lista.Add(MapearIncidencia(dr));
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception("Error al buscar incidencias: " + ex.Message);
+                }
+            }
+
+            return lista;
+        }
+
+        private static Incidencia MapearIncidencia(SqlDataReader dr)
+        {
+            return new Incidencia
+            {
+                IdIncidencia = Convert.ToInt32(dr["id_incidencia"]),
+                IdColegio = Convert.ToInt32(dr["id_colegio"]),
+                TipoIncidencia = dr["tipo_incidencia"].ToString(),
+                Tipologia = dr["tipologia"].ToString(),
+                TipoDocumentoTutor = dr["tipo_doc_reporta"].ToString(),
+                NumeroDocumentoTutor = dr["nro_doc_reporta"].ToString(),
+                NombreTutor = dr["nombre_reporta"].ToString(),
+                CelularTutor = dr["celular_reporta"].ToString(),
+                DetalleIncidencia = dr["detalle_incidencia"].ToString(),
+                Estado = dr["estado"].ToString(),
+                FechaReagendado = dr["fecha_reagendada"] as DateTime?,
+                FechaRegistro = dr["fecha_registro"] as DateTime?,
+                FechaUpdate = dr["fecha_update"] as DateTime?,
+                Colegio = new Colegio
+                {
+                    IdColegio = Convert.ToInt32(dr["id_colegio"]),
+                    NombreColegio = dr["nombre_colegio"].ToString()
+                }
+            };
+        }
     }
 }

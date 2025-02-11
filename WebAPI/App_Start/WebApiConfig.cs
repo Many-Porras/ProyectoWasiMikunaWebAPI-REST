@@ -8,6 +8,7 @@ namespace WebAPI
 {
     public static class WebApiConfig
     {
+        // Habilitar JWT para seguridad de usuario
         public static readonly string JwtSecretKey = "EstaEsUnaClaveSeguraDeMasDe32Caracteres!";
         public static void Register(HttpConfiguration config)
         {
@@ -20,9 +21,12 @@ namespace WebAPI
 
             config.Routes.MapHttpRoute(
                 name: "DefaultApi",
-                routeTemplate: "api/{controller}/{id}",
+               routeTemplate: "api/{controller}/{action}/{id}",
                 defaults: new { id = RouteParameter.Optional }
             );
+
+            config.EnsureInitialized();
+
         }
     }
 }

@@ -14,6 +14,7 @@ namespace WebAPI.Controllers
     [EnableCors(origins: "http://localhost:4200", headers: "*", methods: "*")]
     public class UsuarioController : ApiController
     {
+        //Inicio de Sesion Simple
         [HttpPost]
         [Route("api/usuario/login")]
         public IHttpActionResult Login([FromBody] Usuario usuario)
@@ -25,16 +26,29 @@ namespace WebAPI.Controllers
             return Ok(user);
         }
 
+        //Inicio de Sesion con JWT
+        [HttpPost]
+        [Route("api/usuario/loginJWT")]
+        public IHttpActionResult LoginJWT([FromBody] Usuario usuario)
+        {
+            var user = UsuarioData.LoginUsuarioJWT(usuario.Email, usuario.Password);
+            if (user == null)
+                return BadRequest("Correo o contraseña incorrectos");
+
+            var token = GenerarToken(user);
+            return Ok(new { token, user });
+        }
+
         //Metodo para generar token
         private string GenerarToken(Usuario usuario)
         {
             var key = Encoding.UTF8.GetBytes(WebApiConfig.JwtSecretKey);
             var claims = new[]
             {
-        new Claim(ClaimTypes.NameIdentifier, usuario.IdUsuario.ToString()),
-        new Claim(ClaimTypes.Email, usuario.Email),
-        new Claim(ClaimTypes.Name, usuario.Name)
-    };
+                new Claim(ClaimTypes.NameIdentifier, usuario.IdUsuario.ToString()),
+                new Claim(ClaimTypes.Email, usuario.Email),
+                new Claim(ClaimTypes.Name, usuario.Name)
+            };
 
             var credenciales = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256);
             var token = new JwtSecurityToken(
@@ -46,19 +60,6 @@ namespace WebAPI.Controllers
             );
 
             return new JwtSecurityTokenHandler().WriteToken(token);
-        }
-
-
-        [HttpPost]
-        [Route("api/usuario/loginJWT")]
-        public IHttpActionResult LoginJWT([FromBody] Usuario usuario)
-        {
-            var user = UsuarioData.LoginUsuarioJWT(usuario.Email, usuario.Password);
-            if (user == null)
-                return BadRequest("Correo o contraseña incorrectos");
-
-            var token = GenerarToken(user);
-            return Ok(new { token, user });
         }
 
         [Authorize]

@@ -22,7 +22,7 @@ namespace WebAPI.Models
 
         // Relación con la tabla Colegio
         public Colegio Colegio { get; set; }
-
+        
         // Relación con la tabla DetalleIncidencia
         public List<DetalleIncidencia> DetalleIncidencias { get; set; }
     }
